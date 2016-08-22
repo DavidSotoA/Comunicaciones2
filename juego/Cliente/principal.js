@@ -8,7 +8,7 @@ var botonDisparo;
 var balas;
 var enemies;
 var tiempoBala = 0;
-var direccionImagen=['tanqueR','tanqueL','tanqueU','tanqueD']
+var direccionImagen=[0,-180,-90,90]
 var miDireccion;
 
 
@@ -16,10 +16,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 
 	function preload(){
 		juego.stage.backgroundColor = "#00796B";
-		juego.load.spritesheet('tanqueU', 'imagenes/tanqueU.png', 64, 64)
 		juego.load.spritesheet('tanqueR', 'imagenes/tanqueR.png', 64, 64)
-		juego.load.spritesheet('tanqueD', 'imagenes/tanqueD.png', 64, 64)
-		juego.load.spritesheet('tanqueL', 'imagenes/tanqueL.png', 64, 64)
 		juego.load.image('bala', 'imagenes/bala.png' );
 	}
 
@@ -74,8 +71,9 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 
 	function MyPlayer(data){
 		miDireccion=data.dir;
-		player = juego.add.sprite(data.x, data.y, miDireccion);
-  		//player.anchor.setTo(0.5, 0.5);
+		player = juego.add.sprite(data.x, data.y, "tanqueR");
+  		player.anchor.setTo(0.5, 0.5);
+  		player.angle=data.direccion;
 
 	}
 
@@ -133,12 +131,10 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 			  }
 			if (cursores.right.isDown) {
 				player.position.x += 4;
-
 				miDireccion=direccionImagen[0];
 			}
 			if (cursores.left.isDown) {
 				player.position.x -= 4;
-
 				miDireccion=direccionImagen[1];
 			}
 			if (cursores.up.isDown) {
@@ -149,7 +145,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 				player.position.y += 4;
 				miDireccion=direccionImagen[3];
 			}
-			player.loadTexture(miDireccion, 0);
+			player.angle = miDireccion;
 			socket.emit('move player', { x: player.position.x, y: player.position.y, dir: miDireccion})
 		}
 	}
@@ -173,7 +169,8 @@ var RemotePlayer = function (index, game, player, startX, startY, direccion) {
   this.player = player
   this.alive = true
 
-  this.player = game.add.sprite(x, y, direccion)
+  this.player = game.add.sprite(x, y, "tanqueR")
+  this.player.angle=direccion;
 
   //this.player.animations.add('move', [0, 1, 2, 3, 4, 5, 6, 7], 20, true)
   //this.player.animations.add('stop', [3], 20, true)
@@ -193,7 +190,7 @@ var RemotePlayer = function (index, game, player, startX, startY, direccion) {
 RemotePlayer.prototype.update = function () {
   if (this.player.x !== this.lastPosition.x || this.player.y !== this.lastPosition.y) {
     this.player.play('move')
-    this.player.loadTexture(this.player.direccion, 0);
+    this.player.angle=this.player.direccion;
   } else {
     this.player.play('stop')
   }

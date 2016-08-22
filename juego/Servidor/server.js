@@ -3,7 +3,7 @@ var http = require('http')
 var path = require('path')
 var ecstatic = require('ecstatic')
 var io = require('socket.io')
-var direccionImagen=['tanqueR','tanqueL','tanqueU','tanqueD']
+var direccionImagen=[0,-180,-90,90]
 
 var Tanque = require('../Cliente/Tanque.js')
 
