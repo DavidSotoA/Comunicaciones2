@@ -7,7 +7,7 @@ var direccionImagen=[0,-180,-90,90]
 
 var Tanque = require('../Cliente/Tanque.js')
 
-var posiciones= [[10,10],[726,526],[10,526], [726,10]];
+var posiciones= [[40,40],[760,560],[40,560], [760,40]];
 var jugadoresDisponibles=[true,true,true,true];
 var port =  8888
 
@@ -60,6 +60,8 @@ function onSocketConnection (client) {
 
   // Listen for new player message
   client.on('new player', onNewPlayer)
+
+  client.on('move bullets', onMoveBullets)
 
   // Listen for move player message
   client.on('move player', onMovePlayer)
@@ -119,6 +121,18 @@ function onNewPlayer(){
   }else{
     util.log("Ya estan los 4 jugadores, no se pueden conectar mas")
   }
+}
+
+function onMoveBullets(data){
+  var moveBullets = playerById(this.id);
+
+  if (!moveBullets) {
+    util.log('Player not found: ' + this.id);
+    return
+  }
+
+  this.broadcast.emit('move bullets', {id: moveBullets.id, balas: data.balas});  
+
 }
 
 function onMovePlayer(data){
