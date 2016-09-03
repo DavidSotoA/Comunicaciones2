@@ -10,6 +10,7 @@ var enemies;
 var tiempoBala = 0;
 var direccionImagen=[0,-180,-90,90]
 var miDireccion;
+var sonido_disparo;
 
 
 var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update})
@@ -18,6 +19,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 		juego.stage.backgroundColor = "#000";
 		juego.load.spritesheet('tanqueR', 'imagenes/tanqueR.png', 64, 64)
 		juego.load.image('bala', 'imagenes/bala.png' );
+		juego.load.audio('sonido_disparo', 'sonidos/disparo.mp3');
 	}
 
 	function create () {
@@ -26,6 +28,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 		juego.physics.startSystem(Phaser.Physics.ARCADE);
 		fireButton = juego.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
 		enemies=[];
+
+		sonido_disparo = juego.add.audio('sonido_disparo');
 		setEventHandlers();	
 	}
 
@@ -83,6 +87,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	function disparo () { 
 		console.log("x: "+balas.fireFrom.x);
 		console.log("y: "+balas.fireFrom.y);
+		sonido_disparo.play();
 		var enviarBalas=[];
 		enviarBalas.push({x: balas.fireFrom.x, y: balas.fireFrom.y});
 		socket.emit('move bullets', {balas: enviarBalas});
@@ -231,13 +236,12 @@ var RemotePlayer = function (index, game, player, startX, startY, direccion) {
 
   this.balas.trackSprite(this.player, 0, 0, true);
 
-  //this.player.angle = game.rnd.angle()
-
   this.lastPosition = { x: x, y: y }
 
 }
 
 RemotePlayer.prototype.disparar = function () {
+	sonido_disparo.play();
 	this.balas.fire();
 }
 
