@@ -66,7 +66,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	    balas.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS; // se indica que muera la bala al salir de la pantalla
 	    balas.bulletSpeed = 600; //velocidad de las balas
 	    balas.fireRate = 100; //velacidad entre cada bala
-	    console
+
 
 	    player = juego.add.sprite(data.x, data.y, "tanqueR");
   		player.anchor.set(0.5);
@@ -76,19 +76,17 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
   		player.body.collideWorldBounds = true
   		player.body.drag.set(70);
 
+  		balas.onFire.add(disparo, this); // se  llamara la funcion disparo cada vez que el jugador dispare
 	    balas.trackSprite(player, 0, 0, true); //indicar que la bala sale con el mismo angulo que player 
-  		/* 
-  		balas = juego.add.group();
-		balas.enableBody = true;
-		balas.physicsBodyType= Phaser.Physics.ARCADE;
-		balas.createMultiple(20,'bala');
-		balas.setAll('anchor.x',0.5);
-		balas.setAll('anchor.y',1);
-		balas.setAll('outOfBoundsKill',true);
-		balas.setAll('checkWorldBounds',true);
-		*/
-
 	}
+
+	function disparo () { 
+		console.log("x: "+balas.fireFrom.x);
+		console.log("y: "+balas.fireFrom.y);
+		var enviarBalas=[];
+		enviarBalas.push({x: balas.fireFrom.x, y: balas.fireFrom.y});
+		socket.emit('move bullets', {balas: enviarBalas});
+	 }
 
 	function onNewPlayer(data){
 		console.log("data: "+data.id);
@@ -130,8 +128,9 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 		    util.log('Player not found: ' + this.id)
 		    return
   		}
-
+  		moveBullets.disparar();
 	}
+
 
 	function onRemovePlayer(data){
 		var removePlayer=playerById(data.id);
@@ -176,6 +175,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 			if (fireButton.isDown){
 		        balas.fire();
 		    }
+		    /*
 		    if(balas!=null){
 		    	if(balas.bullets.total!=0){
 			    	var i;
@@ -187,51 +187,9 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 			    	//console.log(balas.total);
 			    	//console.log(balas.bullets.children[0].x);
 		    	}
-		    }	
+		    }	*/
 			player.angle = miDireccion;
-			socket.emit('move player', { x: player.position.x, y: player.position.y, dir: miDireccion});
-			/*
-			var bala;
-			if (botonDisparo.isDown) {
-				if (juego.time.now > tiempoBala) {
-
-					bala = balas.getFirstExists(false);
-					bala.height = 50;
-					bala.width = 50;
-				}
-				if (bala) {
-					bala.height = 50;
-					bala.width = 50;
-					bala.reset(player.x,player.y);
-					if (player.angle==0) {
-					
-						bala.body.velocity.x= 300;
-						bala.anchor.setTo(0.5, 0.5);
-	  					bala.angle=90;
-						
-					}
-					if (player.angle==-180) {
-						
-						bala.body.velocity.x= -300;
-						bala.anchor.setTo(0.5, 0.5);
-	  					bala.angle=-90;
-						
-					}
-					if (player.angle==-90) {
-						bala.body.velocity.y= -300;
-						bala.anchor.setTo(0.5, 0.5);
-	  					bala.angle=0;
-					}
-					if (player.angle==90) {
-						bala.body.velocity.y= 300;
-						bala.anchor.setTo(0.5, 0.5);
-	  					bala.angle=-180;
-					}
-					
-
-					tiempoBala = juego.time.now + 100;
-				}
-			}*/ 	
+			socket.emit('move player', { x: player.position.x, y: player.position.y, dir: miDireccion});	
 		}
 	}
 
@@ -253,30 +211,34 @@ var RemotePlayer = function (index, game, player, startX, startY, direccion) {
   var y = startY
   var direccion=direccion
 
-  this.balas = game.add.group();
-
   this.game = game
   this.health = 3
   this.player = player
   this.alive = true
 
+  this.balas = game.add.weapon(1, 'bala'); //numero de balas que pueden haber en pantalla y se carga el sprite
+  this.balas.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS; // se indica que muera la bala al salir de la pantalla
+  this.balas.bulletSpeed = 600; //velocidad de las balas
+  this.balas.fireRate = 100; //velacidad entre cada bala
+
   this.player = game.add.sprite(x, y, "tanqueR")
   this.player.angle=direccion;
-
-  //this.player.animations.add('move', [0, 1, 2, 3, 4, 5, 6, 7], 20, true)
-  //this.player.animations.add('stop', [3], 20, true)
-
-  //this.player.anchor.setTo(0.5, 0.5)
 
   this.player.name = index.toString()
   juego.physics.enable(this.player, Phaser.Physics.ARCADE)
   this.player.body.immovable = true
   this.player.body.collideWorldBounds = true
 
+  this.balas.trackSprite(this.player, 0, 0, true);
+
   //this.player.angle = game.rnd.angle()
 
   this.lastPosition = { x: x, y: y }
 
+}
+
+RemotePlayer.prototype.disparar = function () {
+	this.balas.fire();
 }
 
 RemotePlayer.prototype.update = function () {
