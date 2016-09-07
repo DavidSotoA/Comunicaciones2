@@ -81,8 +81,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
     	explosion.animations.play('explodes', 30, false, true);
         sondio_explosion.play();
         socket.emit('explosion', {x: obj1.body.x, y: obj1.body.y});
+        //juego.time.events.add(Phaser.Timer.SECOND * 2, function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
         explosion.animations.currentAnim.onComplete.add(function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
-       
         
         console.log("colision");
 	}
@@ -95,15 +95,16 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 
 	function enemigoDestruido(data){
 		var enemigoDestruido = playerById(data.id);
+	
 		console.log("enemy_x: "+data.x);
 		console.log("enemy_y: "+data.y);
-		
+		enemigoDestruido.player.kill();
 		explosion = juego.add.sprite(data.x, data.y, "kaboom")
 		explosion.anchor.set(0.25);
     	explosion.animations.add('explodes')
     	explosion.animations.play('explodes', 30, false, true);
         sondio_explosion.play();
-
+        //juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset();}, this);
         explosion.animations.currentAnim.onComplete.add(function () {enemigoDestruido.player.reset();}, this);        
 	}
 
