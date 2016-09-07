@@ -65,6 +65,8 @@ function onSocketConnection (client) {
 
   // Listen for move player message
   client.on('move player', onMovePlayer)
+
+  client.on('explosion', choque)
 }
 
 function onClientDisconnect(){
@@ -85,6 +87,7 @@ function onClientDisconnect(){
   // Broadcast removed player to connected socket clients
   this.broadcast.emit('remove player', {id: this.id})
 }
+
 
 function onNewPlayer(){
 
@@ -121,6 +124,18 @@ function onNewPlayer(){
   }else{
     util.log("Ya estan los 4 jugadores, no se pueden conectar mas")
   }
+}
+
+function choque(data){
+  var player= playerById(this.id);
+
+
+  if (!player) {
+    util.log('Player not found: ' + this.id);
+    return
+  }
+
+  this.broadcast.emit('aiudaaa', {id: player.id, x: data.x, y: data.y});
 }
 
 function onMoveBullets(data){

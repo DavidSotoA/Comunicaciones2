@@ -3,14 +3,17 @@ var socket;
 var players = [];
 var tanque1;
 var cursores;
+var explosions;
 var player;
 var botonDisparo;
 var balas=null;
 var enemies;
 var tiempoBala = 0;
 var direccionImagen=[0,-180,-90,90]
+var miposicionOring;
 var miDireccion;
 var sonido_disparo;
+var sondio_explosion;
 
 
 var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update})
@@ -18,18 +21,22 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	function preload(){
 		juego.stage.backgroundColor = "#000";
 		juego.load.spritesheet('tanqueR', 'imagenes/tanqueR.png', 64, 64)
+		juego.load.spritesheet('kaboom', 'imagenes/explode.png', 128, 128);
 		juego.load.image('bala', 'imagenes/bala.png' );
 		juego.load.audio('sonido_disparo', 'sonidos/disparo.mp3');
+		juego.load.audio('sondio_explosion', 'sonidos/meDieron.mp3');
 	}
 
 	function create () {
 		socket=io.connect('http://localhost:8888');
+		//socket=io.connect('http://192.168.194.19:8888');
 		cursores = juego.input.keyboard.createCursorKeys();
 		juego.physics.startSystem(Phaser.Physics.ARCADE);
 		fireButton = juego.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
 		enemies=[];
 
 		sonido_disparo = juego.add.audio('sonido_disparo');
+	    sondio_explosion = juego.add.audio('sondio_explosion');
 		setEventHandlers();	
 	}
 
@@ -52,6 +59,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 
 		  // Player removed message received
 		  socket.on('remove player', onRemovePlayer)
+
+		  socket.on('aiudaaa', enemigoDestruido)
 		}
 
 
@@ -63,6 +72,42 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 
 	}
 
+	function choque(obj1,obj2){
+		console.log("choquee")
+		obj1.kill();
+		explosion = juego.add.sprite(player.position.x, player.position.y, "kaboom")
+		explosion.anchor.set(0.5);
+    	explosion.animations.add('explodes')
+    	explosion.animations.play('explodes', 30, false, true);
+        sondio_explosion.play();
+        socket.emit('explosion', {x: obj1.body.x, y: obj1.body.y});
+        explosion.animations.currentAnim.onComplete.add(function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
+       
+        
+        console.log("colision");
+	}
+
+
+	 function meDieron(obj1,obj2){
+	 	choque(obj1,obj2);
+	 	obj2.kill();
+	 }
+
+	function enemigoDestruido(data){
+		var enemigoDestruido = playerById(data.id);
+		console.log("enemy_x: "+data.x);
+		console.log("enemy_y: "+data.y);
+		
+		explosion = juego.add.sprite(data.x, data.y, "kaboom")
+		explosion.anchor.set(0.25);
+    	explosion.animations.add('explodes')
+    	explosion.animations.play('explodes', 30, false, true);
+        sondio_explosion.play();
+
+        explosion.animations.currentAnim.onComplete.add(function () {enemigoDestruido.player.reset();}, this);        
+	}
+
+
 	function MyPlayer(data){
 		miDireccion=data.dir;
 	
@@ -71,14 +116,18 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	    balas.bulletSpeed = 600; //velocidad de las balas
 	    balas.fireRate = 100; //velacidad entre cada bala
 
-
 	    player = juego.add.sprite(data.x, data.y, "tanqueR");
   		player.anchor.set(0.5);
   		player.angle=data.dir;
 
+  		miposicionOring = [data.x,data.y];
+
   		juego.physics.enable(player, Phaser.Physics.ARCADE)
   		player.body.collideWorldBounds = true
   		player.body.drag.set(70);
+
+	//	player.body.onCollide = new Phaser.Signal();
+	//	player.body.onCollide.add(choque, this);  		
 
   		balas.onFire.add(disparo, this); // se  llamara la funcion disparo cada vez que el jugador dispare
 	    balas.trackSprite(player, 0, 0, true); //indicar que la bala sale con el mismo angulo que player 
@@ -93,6 +142,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 		socket.emit('move bullets', {balas: enviarBalas});
 	 }
 
+
 	function onNewPlayer(data){
 		console.log("data: "+data.id);
 		var duplicate = playerById(data.id)
@@ -102,7 +152,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	  	}
 
 	  // Add new player to the remote players array
-	   enemies.push(new RemotePlayer(data.id, juego, player, data.x, data.y,data.dir))
+	   enemies.push(new RemotePlayer(data.id, juego, player, data.x, data.y,data.dir));
+	   juego.physics.arcade.enable([player, playerById(data.id).player]);
 	}
 
 	function onMovePlayer(data){
@@ -150,15 +201,21 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
   		enemies.splice(enemies.indexOf(removePlayer), 1);
 	}
 
+
 	function update(){
 		if(player!=null){
 			var j=0;
 
 			for (var i = 0; i < enemies.length; i++) {
 				
+
 			    if (enemies[i].alive) {
+			    //  juego.physics.enable(enemies[i].player, Phaser.Physics.ARCADE)
+			    //  enemies[i].player.body.collideWorldBounds = true;
+			      juego.physics.arcade.collide(player, enemies[i].player,choque,null,this);
+			      juego.physics.arcade.collide(player, enemies[i].balas.bullets,meDieron,null,this);
 			      enemies[i].update()
-			      juego.physics.arcade.collide(player, enemies[i].player)
+			      
 			    }
 			  }
 			if (cursores.right.isDown) {
@@ -180,19 +237,6 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 			if (fireButton.isDown){
 		        balas.fire();
 		    }
-		    /*
-		    if(balas!=null){
-		    	if(balas.bullets.total!=0){
-			    	var i;
-			    	var enviarBalas=[];
-			    	for(i=0;i<balas.bullets.total;i++){
-			    		enviarBalas.push({x: balas.bullets.children[i].x, y: balas.bullets.children[i].y});
-			    	}
-			    	socket.emit('move bullets', {balas: enviarBalas});
-			    	//console.log(balas.total);
-			    	//console.log(balas.bullets.children[0].x);
-		    	}
-		    }	*/
 			player.angle = miDireccion;
 			socket.emit('move player', { x: player.position.x, y: player.position.y, dir: miDireccion});	
 		}
@@ -228,6 +272,7 @@ var RemotePlayer = function (index, game, player, startX, startY, direccion) {
 
   this.player = game.add.sprite(x, y, "tanqueR")
   this.player.angle=direccion;
+  this.player.anchor.set(0.5);
 
   this.player.name = index.toString()
   juego.physics.enable(this.player, Phaser.Physics.ARCADE)
