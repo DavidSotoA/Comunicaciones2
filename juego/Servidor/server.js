@@ -127,15 +127,16 @@ function onNewPlayer(){
 }
 
 function choque(data){
-  var player= playerById(this.id);
+  /*var player= playerById(this.id);
 
 
   if (!player) {
     util.log('Player not found: ' + this.id);
     return
-  }
-
-  this.broadcast.emit('aiudaaa', {id: player.id, x: data.x, y: data.y});
+  }*/
+  util.log("choque")
+  this.emit('aiudaaa', {id1: data.id1, x1: data.x1, y1: data.y1,
+                                id2: data.id2, x2: data.x2, y2: data.y2});
 }
 
 function onMoveBullets(data){

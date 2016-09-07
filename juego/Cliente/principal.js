@@ -73,18 +73,20 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	}
 
 	function choque(obj1,obj2){
+		/*
 		console.log("choquee")
 		obj1.kill();
 		explosion = juego.add.sprite(player.position.x, player.position.y, "kaboom")
 		explosion.anchor.set(0.5);
     	explosion.animations.add('explodes')
     	explosion.animations.play('explodes', 30, false, true);
-        sondio_explosion.play();
-        socket.emit('explosion', {x: obj1.body.x, y: obj1.body.y});
+        sondio_explosion.play();*/
+        socket.emit('explosion', {id1: obj1.name, x1: obj1.body.x, y1: obj1.body.y,
+        					      id2: obj2.name, x2: obj2.body.x, y2: obj2.body.y});
+        //console.log("colision");
         //juego.time.events.add(Phaser.Timer.SECOND * 2, function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
-        explosion.animations.currentAnim.onComplete.add(function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
+        //explosion.animations.currentAnim.onComplete.add(function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
         
-        console.log("colision");
 	}
 
 
@@ -93,7 +95,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	 	obj2.kill();
 	 }
 
-	function enemigoDestruido(data){
+	function enemigoDestruido(data){/*
+
 		var enemigoDestruido = playerById(data.id);
 	
 		console.log("enemy_x: "+data.x);
@@ -106,6 +109,54 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
         sondio_explosion.play();
         //juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset();}, this);
         explosion.animations.currentAnim.onComplete.add(function () {enemigoDestruido.player.reset();}, this);        
+	*/
+		var exp1,exp2;
+		var enemigoDestruido = playerById(data.id1);
+
+		if(!enemigoDestruido){
+			console.log("me choque")
+			player.kill();
+			exp1 = juego.add.sprite(player.position.x, player.position.y, "kaboom")
+			exp1.anchor.set(0.5);
+	    	exp1.animations.add('explodes')
+	    	exp1.animations.play('explodes', 30, false, true);
+	    	//player.reset(miposicionOring[0],miposicionOring[1]);
+	    	juego.time.events.add(Phaser.Timer.SECOND * 2, function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
+			
+		}else{
+			console.log("cc")
+			enemigoDestruido.player.kill();
+			exp2 = juego.add.sprite(data.x1, data.y1, "kaboom")
+			exp2.anchor.set(0.25);
+	    	exp2.animations.add('explodes')
+	    	exp2.animations.play('explodes', 30, false, true);
+	    	//enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());
+	    	juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());}, this);
+		}
+
+		enemigoDestruido = playerById(data.id2);
+
+		if(!enemigoDestruido){
+			console.log("aca no entro")
+			player.kill();
+			exp1 = juego.add.sprite(player.position.x, player.position.y, "kaboom")
+			exp1.anchor.set(0.5);
+	    	exp1.animations.add('explodes')
+	    	exp1.animations.play('explodes', 30, false, true);
+	    	//player.reset(miposicionOring[0],miposicionOring[1]);
+	    	juego.time.events.add(Phaser.Timer.SECOND * 2, function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
+			
+		}else{
+			console.log("dd")
+			enemigoDestruido.player.kill();
+			exp2 = juego.add.sprite(data.x2, data.y2, "kaboom")
+			exp2.anchor.set(0.25);
+	    	exp2.animations.add('explodes')
+	    	exp2.animations.play('explodes', 30, false, true);
+	    	//enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());
+	    	juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());}, this);
+		}
+		sondio_explosion.play();
 	}
 
 
@@ -120,6 +171,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	    player = juego.add.sprite(data.x, data.y, "tanqueR");
   		player.anchor.set(0.5);
   		player.angle=data.dir;
+  		player.name = (data.id).toString()
 
   		miposicionOring = [data.x,data.y];
 
@@ -266,6 +318,9 @@ var RemotePlayer = function (index, game, player, startX, startY, direccion) {
   this.player = player
   this.alive = true
 
+   this.initX=startX
+   this.initY=startY
+
   this.balas = game.add.weapon(1, 'bala'); //numero de balas que pueden haber en pantalla y se carga el sprite
   this.balas.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS; // se indica que muera la bala al salir de la pantalla
   this.balas.bulletSpeed = 600; //velocidad de las balas
@@ -290,6 +345,14 @@ RemotePlayer.prototype.disparar = function () {
 	sonido_disparo.play();
 	this.balas.fire();
 }
+
+RemotePlayer.prototype.getInitX=function(){
+		return this.initX
+	}
+
+RemotePlayer.prototype.getInitY=function(){
+		return this.initY
+	}
 
 RemotePlayer.prototype.update = function () {
   if (this.player.x !== this.lastPosition.x || this.player.y !== this.lastPosition.y) {
