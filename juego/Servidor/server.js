@@ -67,6 +67,14 @@ function onSocketConnection (client) {
   client.on('move player', onMovePlayer)
 
   client.on('explosion', choque)
+
+  client.on('explosionDisparo', disparo)
+
+  client.on('gane', ganador)
+}
+
+function ganador(data){
+  this.broadcast.emit('perdedor', {})
 }
 
 function onClientDisconnect(){
@@ -137,7 +145,23 @@ function choque(data){
   util.log("choque")
   this.emit('aiudaaa', {id1: data.id1, x1: data.x1, y1: data.y1,
                                 id2: data.id2, x2: data.x2, y2: data.y2});
+  this.broadcast.emit('aiudaaa', {id1: data.id1, x1: data.x1, y1: data.y1,
+                                id2: data.id2, x2: data.x2, y2: data.y2});
 }
+
+function disparo(data){
+  /*var player= playerById(this.id);
+
+
+  if (!player) {
+    util.log('Player not found: ' + this.id);
+    return
+  }*/
+  util.log("me mori")
+  this.emit('meMori', {id1: data.id1, id2: data.id2, x1: data.x1, y1: data.y1});
+  this.broadcast.emit('meMori', {id1: data.id1, id2: data.id2, x1: data.x1, y1: data.y1});
+}
+
 
 function onMoveBullets(data){
   var moveBullets = playerById(this.id);

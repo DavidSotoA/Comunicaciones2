@@ -14,6 +14,8 @@ var miposicionOring;
 var miDireccion;
 var sonido_disparo;
 var sondio_explosion;
+var enemyDisparo=null;
+
 
 
 var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update})
@@ -23,17 +25,29 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 		juego.load.spritesheet('tanqueR', 'imagenes/tanqueR.png', 64, 64)
 		juego.load.spritesheet('kaboom', 'imagenes/explode.png', 128, 128);
 		juego.load.image('bala', 'imagenes/bala.png' );
+		juego.load.image('boss', 'imagenes/boss.png', 10, 10);
 		juego.load.audio('sonido_disparo', 'sonidos/disparo.mp3');
 		juego.load.audio('sondio_explosion', 'sonidos/meDieron.mp3');
+		juego.load.bitmapFont('desyrel', 'fuentes/desyrel.png', 'fuentes/desyrel.xml');
+	
+
 	}
 
 	function create () {
 		socket=io.connect('http://localhost:8888');
-		//socket=io.connect('http://192.168.194.19:8888');
+		//socket=io.connect('http://192.168.194.17:8888');
 		cursores = juego.input.keyboard.createCursorKeys();
 		juego.physics.startSystem(Phaser.Physics.ARCADE);
 		fireButton = juego.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
 		enemies=[];
+		/*
+		map = juego.add.tilemap();
+		layer = map.create('level1', 40, 30, 32, 32);
+		 map.putTile(30, 2, 10, layer);
+    	map.putTile(30, 3, 10, layer);
+    	map.putTile(30, 4, 10, layer);
+
+    	map.setCollisionByExclusion([0]);*/
 
 		sonido_disparo = juego.add.audio('sonido_disparo');
 	    sondio_explosion = juego.add.audio('sondio_explosion');
@@ -61,8 +75,24 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 		  socket.on('remove player', onRemovePlayer)
 
 		  socket.on('aiudaaa', enemigoDestruido)
+
+		  socket.on('meMori', meMoriPorBala)
+
+		  socket.on('perdedor', perdi)
+
 		}
 
+	function perdi(){
+		var line1;
+		var line2;
+		var text = juego.add.bitmapText(400, 300, 'desyrel', 'HAS PERDIDO!!', 64);
+    	text.anchor.x = 0.5;
+    	text.anchor.y = 0.5;
+
+    	line1 = new Phaser.Line(400, 0, 400, 600);
+    	line2 = new Phaser.Line(0, 300, 800, 300);
+    	juego.paused = true;
+	}
 
 	function onSocketConnected(){
 		socket.emit('new player');
@@ -91,9 +121,62 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 
 
 	 function meDieron(obj1,obj2){
-	 	choque(obj1,obj2);
-	 	obj2.kill();
+	 	console.log("me dierooon")
+	 	socket.emit('explosionDisparo', {id1: obj1.name,id2: enemyDisparo.player.name, x1: obj1.body.x, y1: obj1.body.y});
+	 	//obj2.kill();
 	 }
+
+
+	 function meMoriPorBala(data){/*
+
+		var enemigoDestruido = playerById(data.id);
+	
+		console.log("enemy_x: "+data.x);
+		console.log("enemy_y: "+data.y);
+		enemigoDestruido.player.kill();
+		explosion = juego.add.sprite(data.x, data.y, "kaboom")
+		explosion.anchor.set(0.25);
+    	explosion.animations.add('explodes')
+    	explosion.animations.play('explodes', 30, false, true);
+        sondio_explosion.play();
+        //juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset();}, this);
+        explosion.animations.currentAnim.onComplete.add(function () {enemigoDestruido.player.reset();}, this);        
+	*/
+		var exp1;
+		var enemigoDestruido = playerById(data.id1);
+		var matarBala=playerById(data.id2);
+
+
+		if(!enemigoDestruido){
+			player.kill();
+			exp1 = juego.add.sprite(player.position.x, player.position.y, "kaboom")
+			exp1.anchor.set(0.5);
+	    	exp1.animations.add('explodes')
+	    	exp1.animations.play('explodes', 30, false, true);
+	    	player.reset(miposicionOring[0],miposicionOring[1]);
+	    	//juego.time.events.add(Phaser.Timer.SECOND * 2, function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
+			
+		}else{
+			console.log("cc")
+			enemigoDestruido.player.kill();
+			exp2 = juego.add.sprite(data.x1, data.y1, "kaboom")
+			exp2.anchor.set(0.25);
+	    	exp2.animations.add('explodes')
+	    	exp2.animations.play('explodes', 30, false, true);
+	    	enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());
+	    	//juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());}, this);
+		}
+
+		console.log("balas.bullets: "+ balas.bullets)
+
+		if(!matarBala){
+			balas.killAll();
+		}else{
+			matarBala.balas.killAll();
+		}
+
+		sondio_explosion.play();
+	}
 
 	function enemigoDestruido(data){/*
 
@@ -120,8 +203,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 			exp1.anchor.set(0.5);
 	    	exp1.animations.add('explodes')
 	    	exp1.animations.play('explodes', 30, false, true);
-	    	//player.reset(miposicionOring[0],miposicionOring[1]);
-	    	juego.time.events.add(Phaser.Timer.SECOND * 2, function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
+	    	player.reset(miposicionOring[0],miposicionOring[1]);
+	    	//juego.time.events.add(Phaser.Timer.SECOND * 2, function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
 			
 		}else{
 			console.log("cc")
@@ -130,8 +213,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 			exp2.anchor.set(0.25);
 	    	exp2.animations.add('explodes')
 	    	exp2.animations.play('explodes', 30, false, true);
-	    	//enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());
-	    	juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());}, this);
+	    	enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());
+	    	//juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());}, this);
 		}
 
 		enemigoDestruido = playerById(data.id2);
@@ -143,8 +226,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 			exp1.anchor.set(0.5);
 	    	exp1.animations.add('explodes')
 	    	exp1.animations.play('explodes', 30, false, true);
-	    	//player.reset(miposicionOring[0],miposicionOring[1]);
-	    	juego.time.events.add(Phaser.Timer.SECOND * 2, function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
+	    	player.reset(miposicionOring[0],miposicionOring[1]);
+	    	//juego.time.events.add(Phaser.Timer.SECOND * 2, function () {player.reset(miposicionOring[0],miposicionOring[1]);}, this);
 			
 		}else{
 			console.log("dd")
@@ -153,8 +236,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 			exp2.anchor.set(0.25);
 	    	exp2.animations.add('explodes')
 	    	exp2.animations.play('explodes', 30, false, true);
-	    	//enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());
-	    	juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());}, this);
+	    	enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());
+	    	//juego.time.events.add(Phaser.Timer.SECOND * 2, function () {enemigoDestruido.player.reset(enemigoDestruido.getInitX(),enemigoDestruido.getInitY());}, this);
 		}
 		sondio_explosion.play();
 	}
@@ -173,17 +256,41 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
   		player.angle=data.dir;
   		player.name = (data.id).toString()
 
+  		boss = juego.add.sprite(410, 270, "boss");
+  		boss.anchor.set(0.5);
+
+  		juego.physics.enable(boss, Phaser.Physics.ARCADE);
+		boss.body.collideWorldBounds = true;
+		boss.body.immovable = true;
+
+
   		miposicionOring = [data.x,data.y];
 
   		juego.physics.enable(player, Phaser.Physics.ARCADE)
   		player.body.collideWorldBounds = true
   		player.body.drag.set(70);
 
-	//	player.body.onCollide = new Phaser.Signal();
-	//	player.body.onCollide.add(choque, this);  		
+				
 
   		balas.onFire.add(disparo, this); // se  llamara la funcion disparo cada vez que el jugador dispare
 	    balas.trackSprite(player, 0, 0, true); //indicar que la bala sale con el mismo angulo que player 
+
+
+	}
+
+	function gane(ob1, ob2){
+		console.log("ganeeeeeee");
+		var line1;
+		var line2;
+		var text = juego.add.bitmapText(400, 300, 'desyrel', 'HAS GANADO!!', 64);
+    	text.anchor.x = 0.5;
+    	text.anchor.y = 0.5;
+
+    	line1 = new Phaser.Line(400, 0, 400, 600);
+    	line2 = new Phaser.Line(0, 300, 800, 300);
+    	socket.emit('gane',{});
+    	juego.paused = true;
+
 	}
 
 	function disparo () { 
@@ -192,7 +299,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 		sonido_disparo.play();
 		var enviarBalas=[];
 		enviarBalas.push({x: balas.fireFrom.x, y: balas.fireFrom.y});
-		socket.emit('move bullets', {balas: enviarBalas});
+		
 	 }
 
 
@@ -258,11 +365,13 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	function update(){
 		if(player!=null){
 			var j=0;
+			juego.physics.arcade.collide(boss, balas.bullets,gane,null,this);
 
 			for (var i = 0; i < enemies.length; i++) {
 				
-
+				
 			    if (enemies[i].alive) {
+			    	enemyDisparo=enemies[i];
 			    //  juego.physics.enable(enemies[i].player, Phaser.Physics.ARCADE)
 			    //  enemies[i].player.body.collideWorldBounds = true;
 			      juego.physics.arcade.collide(player, enemies[i].player,choque,null,this);
@@ -331,6 +440,7 @@ var RemotePlayer = function (index, game, player, startX, startY, direccion) {
   this.player.anchor.set(0.5);
 
   this.player.name = index.toString()
+  this.balas.bullets.name = index.toString()
   juego.physics.enable(this.player, Phaser.Physics.ARCADE)
   this.player.body.immovable = true
   this.player.body.collideWorldBounds = true
@@ -340,6 +450,7 @@ var RemotePlayer = function (index, game, player, startX, startY, direccion) {
   this.lastPosition = { x: x, y: y }
 
 }
+
 
 RemotePlayer.prototype.disparar = function () {
 	sonido_disparo.play();
