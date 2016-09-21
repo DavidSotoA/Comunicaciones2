@@ -3,11 +3,15 @@ var socket;
 var players = [];
 var tanque1;
 var cursores;
+var text;
 var explosions;
 var player;
 var botonDisparo;
 var balas=null;
 var enemies;
+var score = 0;
+var scoreString = '';
+var scoreText;
 var tiempoBala = 0;
 var direccionImagen=[0,-180,-90,90]
 var miposicionOring;
@@ -34,8 +38,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	}
 
 	function create () {
-		socket=io.connect('http://localhost:8888');
-		//socket=io.connect('http://192.168.194.17:8888');
+		//socket=io.connect('http://localhost:8888');
+		socket=io.connect('http://192.168.30.20:8888');
 		cursores = juego.input.keyboard.createCursorKeys();
 		juego.physics.startSystem(Phaser.Physics.ARCADE);
 		fireButton = juego.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
@@ -48,6 +52,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
     	map.putTile(30, 4, 10, layer);
 
     	map.setCollisionByExclusion([0]);*/
+    	scoreString = 'Mi puntaje : ';
+    	scoreText = juego.add.text(400, 10, scoreString + score, { font: '34px Arial', fill: '#fff' });
 
 		sonido_disparo = juego.add.audio('sonido_disparo');
 	    sondio_explosion = juego.add.audio('sondio_explosion');
@@ -85,7 +91,7 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	function perdi(){
 		var line1;
 		var line2;
-		var text = juego.add.bitmapText(400, 300, 'desyrel', 'HAS PERDIDO!!', 64);
+		text = juego.add.bitmapText(400, 300, 'desyrel', 'HAS PERDIDO!!', 64);
     	text.anchor.x = 0.5;
     	text.anchor.y = 0.5;
 
@@ -279,10 +285,17 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 	}
 
 	function gane(ob1, ob2){
+		if(score != 100){
+			ob2.kill();
+			score += 20;
+   			scoreText.text = scoreString + score;
+   			socket.emit('destruyeBala',{id2: enemyDisparo.player.name});
+
+		}else{
 		console.log("ganeeeeeee");
 		var line1;
 		var line2;
-		var text = juego.add.bitmapText(400, 300, 'desyrel', 'HAS GANADO!!', 64);
+		text = juego.add.bitmapText(400, 300, 'desyrel', 'HAS GANADO!!', 64);
     	text.anchor.x = 0.5;
     	text.anchor.y = 0.5;
 
@@ -290,7 +303,18 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
     	line2 = new Phaser.Line(0, 300, 800, 300);
     	socket.emit('gane',{});
     	juego.paused = true;
+    }
 
+	}
+
+
+	function destBalas(ob12){
+		var matarBala=playerById(ob12.id2);
+		if(!matarBala){
+			balas.killAll();
+		}else{
+			matarBala.balas.killAll();
+		}
 	}
 
 	function disparo () { 
@@ -299,7 +323,8 @@ var juego = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, creat
 		sonido_disparo.play();
 		var enviarBalas=[];
 		enviarBalas.push({x: balas.fireFrom.x, y: balas.fireFrom.y});
-		
+		socket.emit('move bullets', {balas: enviarBalas});
+
 	 }
 
 

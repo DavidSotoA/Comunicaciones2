@@ -71,10 +71,16 @@ function onSocketConnection (client) {
   client.on('explosionDisparo', disparo)
 
   client.on('gane', ganador)
+
+  client.on('destruyeBala', destBala)
 }
 
 function ganador(data){
   this.broadcast.emit('perdedor', {})
+}
+
+function destBala(data){
+  this.broadcast.emit('destBalas', {data})
 }
 
 function onClientDisconnect(){
